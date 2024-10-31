@@ -1,5 +1,6 @@
 # texmd
 A small library that converts LaTeX to Markdown.
+This package uses `pylatexenc` to parse the LaTeX expressions.
 
 ## Usage
 This package allows you to load a `.tex` file directly.
@@ -27,3 +28,7 @@ To output the `document` as Markdown syntax we can do
 md = document.to_str()
 ```
 and you can write it to a `.md` file.
+
+## Customization
+If you don't like the way the package write the Markdown, or you want to support custom LaTeX expressions,
+you can use the API ```texmd.texmd.add_converter``` with a specific type from the package `pylatexenc`.
