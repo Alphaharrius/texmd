@@ -2,6 +2,9 @@
 A small library that converts LaTeX to Markdown.
 This package uses `pylatexenc` to parse the LaTeX expressions.
 
+## Installation
+Run ```pip install texmd``` in the terminal.
+
 ## Usage
 This package allows you to load a `.tex` file directly.
 ```python
