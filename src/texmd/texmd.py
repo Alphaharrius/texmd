@@ -202,6 +202,11 @@ def get_converter(node: LatexNode) -> Converter:
     return _CONVERTER[node_type]
 
 
+def add_converter(node_type: Type[LatexNode], node_name: LiteralString, converter: Converter):
+    """ Add a converter for a LaTeX node. """
+    _CONVERTER[(node_type, node_name)] = converter
+
+
 class TexDocument:
     """ A LaTeX document. """
 
