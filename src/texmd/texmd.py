@@ -203,7 +203,13 @@ def get_converter(node: LatexNode) -> Converter:
 
 
 def add_converter(node_type: Type[LatexNode], node_name: LiteralString, converter: Converter):
-    """ Add a converter for a LaTeX node. """
+    """
+    Add a converter for a LaTeX node type and name.
+    
+    :param node_type: The type of the LaTeX node.
+    :param node_name: The name of the LaTeX node, it is required for `LatexMacroNode` and `LatexEnvironmentNode`.
+    :param converter: The converter for the LaTeX node.
+    """
     _CONVERTER[(node_type, node_name)] = converter
 
 
