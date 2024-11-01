@@ -2,6 +2,12 @@
 A small library that converts LaTeX to Markdown.
 This package uses `pylatexenc` to parse the LaTeX expressions.
 
+Currently, it supports converting inlined mathematical equations `$...$`, 
+equation blocks (`equation`, `equation*`, `align`, `align*`, `array`, `eqnarray`, `multline`), 
+title `\title`, sections (`\section`, `\subsection`, `subsubsection`), abstract content `\abstract{...}` 
+(supported by Markdown block quote), in-text quotations ``` ``...'' ```. 
+More will be introduced in later versions.
+
 ## Installation
 Run ```pip install texmd``` in the terminal.
 
