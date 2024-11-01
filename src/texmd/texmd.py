@@ -226,8 +226,22 @@ class TexDocument:
         return MdDocument(children=children)
     
 
+def set_bib_converter(converter: Converter):
+    """
+    Set the converter for LaTeX bibliography nodes.
+    
+    :param converter: The converter for LaTeX bibliography nodes, if there are no bib information
+    for the current context set this to `None`.
+    """
+    add_converter(LatexMacroNode, 'cite', converter)
+
+
 def load_file(path: str) -> TexDocument:
-    """ Load a LaTeX document from a file. """
+    """
+    Load a LaTeX document from a file.
+    
+    :param path: The path to the LaTeX file.
+    """
     with open(path, 'r') as file:
         content = file.read()
     w = LatexWalker(content)
@@ -239,7 +253,11 @@ def load_file(path: str) -> TexDocument:
 
 
 def parse(tex: str) -> TexDocument:
-    """ Get a LaTeX document from a TeX string. """
+    """
+    Get a LaTeX document from a TeX string.
+    
+    :param tex: The TeX string.
+    """
     w = LatexWalker(tex)
     nodes, _, _ = w.get_latex_nodes()
     return TexDocument(nodes=nodes)

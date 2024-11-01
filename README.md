@@ -32,6 +32,22 @@ md = document.to_str()
 ```
 and you can write it to a `.md` file.
 
+## Add BibTeX support
+In order for the package to also process BibTeX we will have to include a converter for `\cite`.
+```python
+from texmd.bib import build_cite_converter # Import the method to build the converter
+from texmd.texmd import set_bib_converter # Import the method to set the converter
+
+bib_file_path = "<PATH_TO_BIB_FILE>"
+bib_converter = build_cite_converter(bib_file_path)
+set_bib_converter(bib_converter)
+
+... # Load file and write to Markdown
+
+# Set the converter to None to before processing the next file if the next file have no converter.
+set_bib_converter(None)
+```
+
 ## Customization
 If you don't like the way the package write the Markdown, or you want to support custom LaTeX expressions,
 you can use the API ```texmd.texmd.add_converter``` with a specific type from the package `pylatexenc`.

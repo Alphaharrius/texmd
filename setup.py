@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="texmd",
-    version="0.0.1",
+    version="0.0.2",
     description="A simple library that translates LaTeX to Markdown.",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
@@ -22,7 +22,8 @@ setup(
     ],
     install_requires=[
         "pydantic",
-        "pylatexenc"
+        "pylatexenc",
+        "pybtex",
     ],
     extras_require={
         "dev": [
