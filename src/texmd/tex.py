@@ -47,8 +47,10 @@ class TexParentNode(TexNode, ABC):
     """ The children nodes of the group. """
 
     prefix: str
+    """ The prefix of the group. """
 
     suffix: str
+    """ The suffix of the group. """
 
     def find(self, type: Type[TexNode] = None, name: str = "", deep: bool = False) -> List[TexNode]:
         """
@@ -58,6 +60,8 @@ class TexParentNode(TexNode, ABC):
 
         :param type: The type of the children nodes to be found.
         :param name: The name of the `TexNamedNode` children nodes to be found.
+        :param deep: Whether to perform the search for the whole node tree.
+
         :return: The list of children nodes found.
         """
         ret = []
@@ -110,6 +114,7 @@ class TexGroupNode(TexParentNode):
         return self.prefix + self.group_latex() + self.suffix
 
     def get_node_type(self):
+        """ Get the type of the node, this is used to identify the converter for the node. """
         return (TexGroupNode, '')
 
 
@@ -247,15 +252,26 @@ def convert(node: LatexCommentNode) -> List[TexNode]:
 
 
 class Converter(ABC):
+    """ Abstract class for a LaTeX to markdown converter. """
+
     def __init__(self, parser: 'TexParser'):
         self.parser = parser
 
     @abstractmethod
     def convert(self, node: TexNode) -> Generator[MdNode]:
+        """
+        Convert a LaTeX node to some markdown nodes.
+        
+        :param node: The LaTeX node to be converted.
+        
+        :return: The markdown nodes.
+        """
         pass
 
 
 class GroupNodeConverter(Converter):
+    """ A converter for LaTeX group nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -272,6 +288,8 @@ class GroupNodeConverter(Converter):
 
 
 class TextNodeConverter(Converter):
+    """ A converter for LaTeX text nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -285,9 +303,12 @@ SPECIALS_MAPPING = {
     '``': "“",
     "''": "”"
 }
+""" Mapping of LaTeX specials to markdown specials. """
 
 
 class SpecialsNodeConverter(Converter):
+    """ A converter for LaTeX specials nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -298,6 +319,8 @@ class SpecialsNodeConverter(Converter):
     
 
 class MathNodeConverter(Converter):
+    """ A converter for LaTeX math nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -308,6 +331,8 @@ class MathNodeConverter(Converter):
     
 
 class AuthorConverter(Converter):
+    """ A converter for LaTeX author nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -319,6 +344,8 @@ class AuthorConverter(Converter):
     
 
 class TitleConverter(Converter):
+    """ A converter for LaTeX title nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -332,6 +359,8 @@ class TitleConverter(Converter):
     
 
 class SectionConverter(Converter):
+    """ A converter for LaTeX section nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -346,6 +375,8 @@ class SectionConverter(Converter):
     
 
 class SubSectionConverter(Converter):
+    """ A converter for LaTeX subsection nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -360,6 +391,8 @@ class SubSectionConverter(Converter):
     
 
 class SubSubSectionConverter(Converter):
+    """ A converter for LaTeX subsubsection nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -374,6 +407,8 @@ class SubSubSectionConverter(Converter):
     
 
 class AbstractConverter(Converter):
+    """ A converter for LaTeX abstract nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -388,6 +423,8 @@ class AbstractConverter(Converter):
     
 
 class EquationConverter(Converter):
+    """ A converter for LaTeX equation nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -406,6 +443,8 @@ class EquationConverter(Converter):
     
 
 class RefConverter(Converter):
+    """ A converter for LaTeX reference nodes. """
+
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
@@ -423,6 +462,8 @@ __ConverterEntry = Tuple[Type[TexNode], str]
 
 
 class TexParser:
+    """ A parser for LaTeX documents. """
+
     def __init__(self):
         self.__converters: Dict[__ConverterEntry, Converter] = {
             (TexGroupNode, ''): GroupNodeConverter(self),
@@ -455,14 +496,19 @@ class TexParser:
             (TexEnvNode, 'multline*'): EquationConverter(self),
             (TexEnvNode, 'matrix*'): EquationConverter(self)
         }
+        """ Mapping of LaTeX node types to their converters. """
         self.__refs: Dict[str, Tuple[int, str, TexEnvNode]] = {}
+        """ Mapping of LaTeX equation labels to their ids. """
         self.__ref_names: Dict[TexEnvNode, str] = {}
+        """ Mapping of LaTeX equation nodes to their labels. """
 
     def load_file(self, path: str) -> TexDocNode:
         """
         Load a LaTeX document from a file.
         
         :param path: The path to the LaTeX file.
+
+        :return: The LaTeX document.
         """
         with open(path, 'r') as file:
             content = file.read()
@@ -479,7 +525,7 @@ class TexParser:
             prefix='',
             suffix='')
         # Extract equations from the document.
-        self.extract_equations(doc)
+        self._extract_equations(doc)
         return doc
     
     def parse(self, tex: str) -> TexDocNode:
@@ -487,6 +533,8 @@ class TexParser:
         Get a LaTeX document from a TeX string.
         
         :param tex: The TeX string.
+
+        :return: The LaTeX document.
         """
         w = LatexWalker(tex)
         nodes, _, _ = w.get_latex_nodes()
@@ -498,35 +546,60 @@ class TexParser:
             prefix='',
             suffix='')
         # Extract equations from the document.
-        self.extract_equations(doc)
+        self._extract_equations(doc)
         return doc
 
     def get_converter(self, node: TexNode) -> Converter:
+        """ Get the converter for a LaTeX node. """
         return self.__converters.get(node.get_node_type(), None)
     
     def to_md(self, doc: TexDocNode) -> MdDocument:
+        """
+        Convert a LaTeX document to a markdown document.
+        
+        :param doc: The LaTeX document to be converted.
+        
+        :return: The markdown document.
+        """
         doc.remove(type=TexMacroNode, name='label', deep=True)
         pipeline = ((self.get_converter(node), node) for node in doc.children)
         children = [v for converter, node in pipeline if converter is not None 
                     for v in converter.convert(node)]
         return MdDocument(children=children)
+    
+    def get_ref_type(self, label: str) -> str:
+        """
+        Get the type of a LaTeX ref label.
+
+        :param label: The label of the reference.
+
+        :return: The type of the reference, returns an empty string if the label is not found.
+        """
+        return self.__refs.get(label, (-1, '', None))[1]
         
-    def extract_equations(self, doc: TexDocNode) -> None:
+    def _extract_equations(self, doc: TexDocNode) -> None:
+        """ Extract equations from a LaTeX document and store them with the sequential ids. """
         gen = ((self._parse_ref_name(eqn), eqn) for eqn in doc.find(TexEnvNode, 'equation', deep=True))
         gen = ((label, eqn) for label, eqn in gen if label)
         self.__refs |= {label: (n, 'equation', eqn) for n, (label, eqn) in enumerate(gen)}
         self.__ref_names |= {id(eqn): label for label, (_, _, eqn) in self.__refs.items()}
 
     def _get_ref_id(self, label: str) -> int:
+        """
+        Get the sequential id of a LaTeX ref label.
+        
+        :param label: The label of the reference.
+        
+        :return: The id of the reference, returns `-1` if the label is not found.
+        """
         return self.__refs.get(label, (-1, '', None))[0]
-    
-    def _get_ref_type(self, label: str) -> str:
-        return self.__refs.get(label, (-1, '', None))[1]
 
     def _parse_ref_name(self, node: TexEnvNode) -> str:
+        """ Parse the name of the environment node from the label children node. """
         labels = node.find(TexMacroNode, 'label', deep=True)
         if not labels: return ''
         return labels[0].children[0].children[0].text
     
     def _get_ref_name(self, node: TexEnvNode) -> str:
+        """ Get the label of a LaTeX ref node. """
         return self.__ref_names.get(id(node), '')
