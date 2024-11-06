@@ -19,11 +19,6 @@ class MdBranchNode(MdNode, ABC):
 
     def content_to_str(self) -> str:
         return "".join(child.to_str() for child in self.children)
-    
-
-MD_UNSUPPORTED_MACRO = [
-    # \label{...}
-    r'\\label\{[^\}]*\}']
 
 
 class MdDocument(MdBranchNode):
@@ -32,9 +27,6 @@ class MdDocument(MdBranchNode):
     def to_str(self) -> str:
         # Regex to match the specific LaTeX macro \label{<Some Text>}
         content = self.content_to_str()
-        for pattern in MD_UNSUPPORTED_MACRO:
-            regex = re.compile(pattern)
-            content = regex.sub("", content)
         return content
     
 
