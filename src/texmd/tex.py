@@ -539,10 +539,11 @@ class TexParser:
             (TexEnvNode, 'multline*'): EquationConverter(self),
             (TexEnvNode, 'matrix*'): EquationConverter(self)
         }
+        """ Mapping of LaTeX node types to their converters. """
         self.__default_converters: Dict[Type[TexNode], Converter] = {
             TexGroupNode: GroupNodeConverter(self)
         }
-        """ Mapping of LaTeX node types to their converters. """
+        """ Default converters for LaTeX node types. """
         self.__refs: Dict[str, Tuple[int, str, TexEnvNode]] = {}
         """ Mapping of LaTeX equation labels to their ids. """
         self.__ref_names: Dict[TexEnvNode, str] = {}
