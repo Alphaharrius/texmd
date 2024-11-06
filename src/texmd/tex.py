@@ -107,15 +107,27 @@ class TexNamedNode(TexNode, ABC):
     """ The name of the node. """
 
 
+ALLOWED_GROUP_DECO = set(['topic'])
+""" Allowed group decorators like `{\\topic ...}`. """
+
+
 class TexGroupNode(TexParentNode):
     """ A LaTeX group node. """
 
     def __str__(self):
         return self.prefix + self.group_latex() + self.suffix
+    
+    def get_decorators(self) -> List['TexMacroNode']:
+        """ Get the decorators of the group. """
+        ret = [n for n in self.find(TexMacroNode) if n.name in ALLOWED_GROUP_DECO]
+        ret.sort(key=lambda x: x.name)
+        return ret
 
     def get_node_type(self):
         """ Get the type of the node, this is used to identify the converter for the node. """
-        return (TexGroupNode, '')
+        decos = self.get_decorators()
+        deco_names = ':'.join(macro.name for macro in decos)
+        return (TexGroupNode, deco_names)
 
 
 class TexMacroNode(TexNamedNode, TexParentNode):
@@ -456,6 +468,33 @@ class RefConverter(Converter):
                 return MdText(text=f"*(Unknown reference)*")
             yield MdText(text=f"({id})")
         return _()
+    
+
+class TopicConverter(Converter):
+    """ A converter for LaTeX topic nodes. """
+
+    def __init__(self, parser: 'TexParser'):
+        super().__init__(parser)
+
+    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+        def _():
+            yield MdBold(text='Topic.')
+        return _()
+
+
+class TopicGroupConverter(Converter):
+    """ A converter for LaTeX topic nodes. """
+
+    def __init__(self, parser: 'TexParser'):
+        super().__init__(parser)
+
+    def convert(self, node: TexGroupNode) -> Generator[MdNode]:
+        def _():
+            pipeline = ((self.parser.get_converter(child), child) for child in node.children)
+            yield MdBlockQuote(
+                children=[v for converter, n in pipeline if converter is not None 
+                          for v in converter.convert(n)])
+        return _()
 
 
 __ConverterEntry = Tuple[Type[TexNode], str]
@@ -476,6 +515,10 @@ class TexParser:
             (TexMacroNode, 'section'): SectionConverter(self),
             (TexMacroNode, 'subsection'): SubSectionConverter(self),
             (TexMacroNode, 'subsubsection'): SubSubSectionConverter(self),
+            (TexMacroNode, 'topic'): TopicConverter(self),
+
+            (TexGroupNode, 'topic'): TopicGroupConverter(self),
+            (TexGroupNode, 'label:topic'): TopicGroupConverter(self),
 
             (TexEnvNode, 'abstract'): AbstractConverter(self),
             (TexMacroNode, 'eqref'): RefConverter(self),
@@ -495,6 +538,9 @@ class TexParser:
             (TexEnvNode, 'eqnarray*'): EquationConverter(self),
             (TexEnvNode, 'multline*'): EquationConverter(self),
             (TexEnvNode, 'matrix*'): EquationConverter(self)
+        }
+        self.__default_converters: Dict[Type[TexNode], Converter] = {
+            TexGroupNode: GroupNodeConverter(self)
         }
         """ Mapping of LaTeX node types to their converters. """
         self.__refs: Dict[str, Tuple[int, str, TexEnvNode]] = {}
@@ -551,7 +597,9 @@ class TexParser:
 
     def get_converter(self, node: TexNode) -> Converter:
         """ Get the converter for a LaTeX node. """
-        return self.__converters.get(node.get_node_type(), None)
+        return self.__converters.get(
+            node.get_node_type(), 
+            self.__default_converters.get(type(node), None))
     
     def to_md(self, doc: TexDocNode) -> MdDocument:
         """
