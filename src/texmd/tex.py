@@ -601,6 +601,30 @@ class TexParser:
             node.get_node_type(), 
             self.__default_converters.get(type(node), None))
     
+    def set_converter(self, node_type: Type[TexNode], name: str, converter: Converter) -> None:
+        """
+        Set a converter for a LaTeX node type. For `TexMacroNode` and `TexEnvNode` the name of the node must be
+        the same as the name of the LaTeX macro or environment, for example `\\section` have name `section`; and
+        `\\begin{equation}...\\end{equation}` have name `equation`. For `TexGroupNode` the name can be a string
+        indicating its decorator names in ascending order delimited by `:`, for example `{\\topic{...} ... \\label{...} ...}`
+        have name `label:topic`.
+        
+        :param node_type: The type of the LaTeX node.
+        :param name: The name of the LaTeX node.
+        :param converter: The converter for the LaTeX node.
+        """
+        self.__converters[(node_type, name)] = converter
+
+    def set_default_converter(self, node_type: Type[TexNode], converter: Converter) -> None:
+        """
+        Set a default converter for a LaTeX node type. This converter will be used when a specific converter is not
+        found for a LaTeX node.
+        
+        :param node_type: The type of the LaTeX node.
+        :param converter: The converter for the LaTeX node.
+        """
+        self.__default_converters[node_type] = converter
+    
     def to_md(self, doc: TexDocNode) -> MdDocument:
         """
         Convert a LaTeX document to a markdown document.
