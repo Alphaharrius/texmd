@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from typing import Type, Generator, Tuple, List, Dict
 from multipledispatch import dispatch
 from abc import ABC, abstractmethod
+from pybtex.database.input import bibtex, BibliographyData
+from pybtex.database import Person
 
 from texmd.md import (
     MdNode,
@@ -495,6 +497,21 @@ class TopicGroupConverter(Converter):
                 children=[v for converter, n in pipeline if converter is not None 
                           for v in converter.convert(n)])
         return _()
+    
+
+class CiteConverter(Converter):
+    """ A converter for LaTeX cite nodes. """
+
+    def __init__(self, parser: 'TexParser'):
+        super().__init__(parser)
+
+    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+        def _():
+            chars: TexTextNode = node.children[0].children[0]
+            cite_names = chars.text.replace(' ', '').split(',')
+            citations = (self.parser._get_citation(name) for name in cite_names)
+            yield MdText(text="(*" + ", ".join(citations) + "*)")
+        return _()
 
 
 __ConverterEntry = Tuple[Type[TexNode], str]
@@ -516,6 +533,7 @@ class TexParser:
             (TexMacroNode, 'subsection'): SubSectionConverter(self),
             (TexMacroNode, 'subsubsection'): SubSubSectionConverter(self),
             (TexMacroNode, 'topic'): TopicConverter(self),
+            (TexMacroNode, 'cite'): CiteConverter(self),
 
             (TexGroupNode, 'topic'): TopicGroupConverter(self),
             (TexGroupNode, 'label:topic'): TopicGroupConverter(self),
@@ -548,6 +566,17 @@ class TexParser:
         """ Mapping of LaTeX equation labels to their ids. """
         self.__ref_names: Dict[TexEnvNode, str] = {}
         """ Mapping of LaTeX equation nodes to their labels. """
+        self.__citations: BibliographyData = None
+        """ The citations of the document. """
+
+    def load_citations(self, path: str) -> None:
+        """
+        Load citations from a BibTeX file.
+        
+        :param path: The path to the BibTeX file.
+        """
+        parser = bibtex.Parser()
+        self.__citations = parser.parse_file(path)
 
     def load_file(self, path: str) -> TexDocNode:
         """
@@ -676,3 +705,26 @@ class TexParser:
     def _get_ref_name(self, node: TexEnvNode) -> str:
         """ Get the label of a LaTeX ref node. """
         return self.__ref_names.get(id(node), '')
+    
+    def _get_citation(self, name: str) -> str:
+        """ Get the citation of a LaTeX cite node, returns `<Unknown citation>` if the name is not found. """
+        if not self.__citations or name not in self.__citations.entries:
+            return '<Unknown citation>'
+        entry = self.__citations.entries[name]
+        citation = []
+        authors: List[Person] = entry.persons['author']
+        for author in authors:
+            first_name = " ".join(author.first_names)
+            middle_name = " ".join(author.middle_names)
+            last_name = " ".join(author.last_names)
+            first_abbrev = (first_name[0] + '.' if first_name else '')
+            middle_abbrev = (middle_name[0] + '.' if middle_name else '')
+            name = f"{first_abbrev} {middle_abbrev} {last_name}"
+            citation.append(name)
+            citation.append(', ')
+        title = entry.fields['title']
+        citation.append(title)
+        citation.append(', ')
+        year = entry.fields['year'] if 'year' in entry.fields else '<Unknown date>'
+        citation.append(year)
+        return "".join(citation)
