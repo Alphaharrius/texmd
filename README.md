@@ -65,3 +65,40 @@ class TextNodeConverter(Converter):
 converter = TextNodeConverter()
 parser.set_converter(TexTextNode, '', converter)
 ```
+
+The default Citation converter is implemented as follows,
+```python
+class CiteConverter(Converter):
+    """ A converter for LaTeX cite nodes. """
+
+    def __init__(self, parser: 'TexParser'):
+        super().__init__(parser)
+
+    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+        def write_author(author: bib.Author) -> str:
+            first_abbr = author.first_name[0] + '.' if author.first_name else ''
+            middle_abbr = author.middle_name[0] + '.' if author.middle_name else ''
+            return f"{first_abbr} {middle_abbr} {author.last_name}"
+        
+        def write_entry(entry: bib.Entry) -> str:
+            content: List[str] = [*(write_author(author) for author in entry.authors), entry.title, entry.year]
+            return ", ".join(content)
+
+        def _():
+            chars: TexTextNode = node.children[0].children[0]
+            cite_names = chars.text.replace(' ', '').split(',')
+            citations = (self.parser._get_citation(name) for name in cite_names)
+            citations = (write_entry(entry) for entry in citations if entry)
+            yield MdText(text="(*" + ", ".join(citations) + "*)")
+        return _()
+```
+If you want a different style you can implement a new one and load it via
+```python
+class YourCiteConverter(Converter)
+    ...
+
+converter = YourCiteConverter(parser)
+parser.set_converter(TexMacroNode, 'cite', converter)
+```
+And you can obtain the citation entries via ```texmd.tex.TexParser._get_citation```
+in the format of ```texmd.bib.Entry```.
