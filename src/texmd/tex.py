@@ -13,7 +13,6 @@ from typing import Type, Generator, Tuple, List, Dict
 from multipledispatch import dispatch
 from abc import ABC, abstractmethod
 from pybtex.database.input import bibtex, BibliographyData
-from pybtex.database import Person
 
 from texmd.md import (
     MdNode,
@@ -27,6 +26,8 @@ from texmd.md import (
     MdBold,
     MdMath,
     MdEquation)
+
+import texmd.bib as bib
 
 
 class TexNode(BaseModel, ABC):
@@ -506,10 +507,20 @@ class CiteConverter(Converter):
         super().__init__(parser)
 
     def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+        def write_author(author: bib.Author) -> str:
+            first_abbr = author.first_name[0] + '.' if author.first_name else ''
+            middle_abbr = author.middle_name[0] + '.' if author.middle_name else ''
+            return f"{first_abbr} {middle_abbr} {author.last_name}"
+        
+        def write_entry(entry: bib.Entry) -> str:
+            content: List[str] = [*(write_author(author) for author in entry.authors), entry.title, entry.year]
+            return ", ".join(content)
+
         def _():
             chars: TexTextNode = node.children[0].children[0]
             cite_names = chars.text.replace(' ', '').split(',')
             citations = (self.parser._get_citation(name) for name in cite_names)
+            citations = (write_entry(entry) for entry in citations if entry)
             yield MdText(text="(*" + ", ".join(citations) + "*)")
         return _()
 
@@ -538,10 +549,10 @@ class TexParser:
             (TexGroupNode, 'topic'): TopicGroupConverter(self),
             (TexGroupNode, 'label:topic'): TopicGroupConverter(self),
 
-            (TexEnvNode, 'abstract'): AbstractConverter(self),
             (TexMacroNode, 'eqref'): RefConverter(self),
             (TexMacroNode, 'ref'): RefConverter(self),
 
+            (TexEnvNode, 'abstract'): AbstractConverter(self),
             (TexEnvNode, 'equation'): EquationConverter(self),
             (TexEnvNode, 'align'): EquationConverter(self),
             (TexEnvNode, 'array'): EquationConverter(self),
@@ -706,25 +717,25 @@ class TexParser:
         """ Get the label of a LaTeX ref node. """
         return self.__ref_names.get(id(node), '')
     
-    def _get_citation(self, name: str) -> str:
-        """ Get the citation of a LaTeX cite node, returns `<Unknown citation>` if the name is not found. """
+    def _get_citation(self, name: str) -> bib.Entry:
+        """ Get a citation by its name, returns `None` if the citation is not found. """
         if not self.__citations or name not in self.__citations.entries:
-            return '<Unknown citation>'
+            return None
+        
         entry = self.__citations.entries[name]
-        citation = []
-        authors: List[Person] = entry.persons['author']
-        for author in authors:
-            first_name = " ".join(author.first_names)
-            middle_name = " ".join(author.middle_names)
-            last_name = " ".join(author.last_names)
-            first_abbrev = (first_name[0] + '.' if first_name else '')
-            middle_abbrev = (middle_name[0] + '.' if middle_name else '')
-            name = f"{first_abbrev} {middle_abbrev} {last_name}"
-            citation.append(name)
-            citation.append(', ')
-        title = entry.fields['title']
-        citation.append(title)
-        citation.append(', ')
-        year = entry.fields['year'] if 'year' in entry.fields else '<Unknown date>'
-        citation.append(year)
-        return "".join(citation)
+        get_author = lambda v: bib.Author(
+            first_name=" ".join(v.first_names), 
+            middle_name=" ".join(v.middle_names), 
+            last_name=" ".join(v.last_names))
+        authors: List[bib.Author] = [get_author(v) for v in entry.persons['author']]
+        return bib.Entry(
+            name=name,
+            authors=authors,
+            title=entry.fields['title'] if 'title' in entry.fields else '',
+            year=entry.fields['year'] if 'year' in entry.fields else '',
+            journal=entry.fields['journal'] if 'journal' in entry.fields else '',
+            volume=entry.fields['volume'] if 'volume' in entry.fields else '',
+            number=entry.fields['number'] if 'number' in entry.fields else '',
+            pages=entry.fields['pages'] if 'pages' in entry.fields else '',
+            doi=entry.fields['doi'] if 'doi' in entry.fields else '',
+            url=entry.fields['url'] if 'url' in entry.fields else '')
