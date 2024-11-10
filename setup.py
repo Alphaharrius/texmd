@@ -24,7 +24,8 @@ setup(
         "pydantic",
         "pylatexenc",
         "pybtex",
-        "multipledispatch"
+        "multipledispatch",
+        "setuptools"
     ],
     extras_require={
         "dev": [
@@ -32,5 +33,5 @@ setup(
             "twine"
         ]
     },
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )
