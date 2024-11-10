@@ -273,7 +273,7 @@ class Converter(ABC):
         self.parser = parser
 
     @abstractmethod
-    def convert(self, node: TexNode) -> Generator[MdNode]:
+    def convert(self, node: TexNode) -> Generator[MdNode, None, None]:
         """
         Convert a LaTeX node to some markdown nodes.
         
@@ -290,7 +290,7 @@ class GroupNodeConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexGroupNode) -> Generator[MdNode]:
+    def convert(self, node: TexGroupNode) -> Generator[MdNode, None, None]:
         def _():
             yield MdText(text=node.prefix)
             pipeline = ((self.parser.get_converter(child), child) for child in node.children)
@@ -308,7 +308,7 @@ class TextNodeConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexTextNode) -> Generator[MdNode]:
+    def convert(self, node: TexTextNode) -> Generator[MdNode, None, None]:
         def _():
             yield MdText(text=node.text)
         return _()
@@ -327,7 +327,7 @@ class SpecialsNodeConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexSpecialsNode) -> Generator[MdNode]:
+    def convert(self, node: TexSpecialsNode) -> Generator[MdNode, None, None]:
         def _():
             yield MdText(text=SPECIALS_MAPPING.get(node.text, node.text))
         return _()
@@ -339,7 +339,7 @@ class MathNodeConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMathNode) -> Generator[MdNode]:
+    def convert(self, node: TexMathNode) -> Generator[MdNode, None, None]:
         def _():
             yield MdMath(tex=node.group_latex())
         return _()
@@ -351,7 +351,7 @@ class AuthorConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             group: TexGroupNode = node.children[0]
             yield MdText(text=f"**Author:** {group.group_latex()}")
@@ -364,7 +364,7 @@ class TitleConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             group = node.children[0]
             pipeline = ((self.parser.get_converter(child), child) for child in group.children)
@@ -379,7 +379,7 @@ class SectionConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             group = node.children[0]
             pipeline = ((self.parser.get_converter(child), child) for child in group.children)
@@ -395,7 +395,7 @@ class SubSectionConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             group = node.children[0]
             pipeline = ((self.parser.get_converter(child), child) for child in group.children)
@@ -411,7 +411,7 @@ class SubSubSectionConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             group = node.children[0]
             pipeline = ((self.parser.get_converter(child), child) for child in group.children)
@@ -427,7 +427,7 @@ class AbstractConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexEnvNode) -> Generator[MdNode]:
+    def convert(self, node: TexEnvNode) -> Generator[MdNode, None, None]:
         def _():
             pipeline = ((self.parser.get_converter(child), child) for child in node.children)
             yield MdBlockQuote(
@@ -443,7 +443,7 @@ class EquationConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexEnvNode) -> Generator[MdNode]:
+    def convert(self, node: TexEnvNode) -> Generator[MdNode, None, None]:
         def _():
             # Add a star to the equation name if it does not have one,
             # this is to remove the equation numbering in the markdown.
@@ -463,7 +463,7 @@ class RefConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             label = node.children[0].children[0].text
             id = self.parser._get_ref_id(label)
@@ -479,7 +479,7 @@ class TopicConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def _():
             yield MdBold(text='Topic.')
         return _()
@@ -491,7 +491,7 @@ class TopicGroupConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexGroupNode) -> Generator[MdNode]:
+    def convert(self, node: TexGroupNode) -> Generator[MdNode, None, None]:
         def _():
             pipeline = ((self.parser.get_converter(child), child) for child in node.children)
             yield MdBlockQuote(
@@ -506,7 +506,7 @@ class CiteConverter(Converter):
     def __init__(self, parser: 'TexParser'):
         super().__init__(parser)
 
-    def convert(self, node: TexMacroNode) -> Generator[MdNode]:
+    def convert(self, node: TexMacroNode) -> Generator[MdNode, None, None]:
         def write_author(author: bib.Author) -> str:
             first_abbr = author.first_name[0] + '.' if author.first_name else ''
             middle_abbr = author.middle_name[0] + '.' if author.middle_name else ''
