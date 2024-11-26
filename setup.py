@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="texmd",
-    version="0.1.1",
+    version="0.1.2",
     description="A simple library that translates LaTeX to Markdown.",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
